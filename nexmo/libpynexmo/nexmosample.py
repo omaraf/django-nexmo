@@ -39,7 +39,7 @@ def main():
     p = "changeme"
     f = "marcuz"
     t = "39**********"
-    m = "fool the reader àèìòù !!!"
+    m = "fool the reader Ã Ã¨Ã¬Ã²Ã¹ !!!"
 
     msg = {'reqtype': r, 'api_secret': p, 'from': f, 'to': t, 'api_key': u}
 
