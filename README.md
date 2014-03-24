@@ -1,3 +1,6 @@
+- This is just a fork with an updated version of the library [libpynexmo by Marco Londero](https://github.com/marcuz/libpynexmo).
+
+
 # django-nexmo
 
 `django-nexmo` is a tiny Django app to send sms using the Nexmo provider.

@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 #
 # Copyright (c) 2013 Marco Londero <marco.londero@linux.it>
 # All rights reserved.
@@ -70,6 +72,13 @@ class NexmoMessage:
     def set_text_info(self, text):
         # automatically transforms msg to text SMS
         self.sms['type'] = 'text'
+        # if message have unicode symbols send as unicode
+        try:
+            text.decode('ascii')
+        except:
+            self.sms['type'] = 'unicode'
+            if isinstance(text, unicode):
+                text = text.encode('utf8')
         self.sms['text'] = text
 
     def set_bin_info(self, body, udh):
@@ -96,36 +105,34 @@ class NexmoMessage:
         self.sms['vcard'] = vcard
 
     def check_sms(self):
-        """ http://www.nexmo.com/documentation/index.html#request
-            http://www.nexmo.com/documentation/api/ """
         # mandatory parameters for all requests
         if not self.sms.get('api_key') or not self.sms.get('api_secret'):
-            return False
+            raise Exception("API key or secret not set")
 
         # API requests handling
         if self.sms['type'] in self.apireqs:
             if self.sms['type'] == 'balance' or self.sms['type'] == 'numbers':
                 return True
             elif self.sms['type'] == 'pricing' and not self.sms.get('country'):
-                return False
+                raise Exception("Pricing needs counry")
             return True
         # SMS logic, check Nexmo doc for details
         elif self.sms['type'] not in self.smstypes:
-            return False
+            raise Exception("Unknown type")
         elif self.sms['type'] == 'text' and not self.sms.get('text'):
-            return False
+            raise Exception("text missing")
         elif self.sms['type'] == 'binary' and (not self.sms.get('body') or
                                                not self.sms.get('udh')):
-            return False
+            raise Exception("binary payload missing")
         elif self.sms['type'] == 'wappush' and (not self.sms.get('title') or
                                                 not self.sms.get('url')):
-            return False
+            raise Exception("title or URL missing")
         elif self.sms['type'] == 'vcal' and not self.sms.get('vcal'):
-            return False
+            raise Exception("vcal data missing")
         elif self.sms['type'] == 'vcard' and not self.sms.get('vcard'):
-            return False
+            raise Exception("vcard data missing")
         elif not self.sms.get('from') or not self.sms.get('to'):
-            return False
+            raise Exception("From or to missing")
         return True
 
     def build_request(self):
@@ -133,32 +140,33 @@ class NexmoMessage:
         if not self.check_sms():
             return False
         elif self.sms['type'] in self.apireqs:
-            # basic API requests
+            # developer API
             # balance
             if self.sms['type'] == 'balance':
-                self.request = "%s/account/get-balance/%s/%s" % (BASEURL,
-                               self.sms['api_key'], self.sms['api_secret'])
+                self.request = "%s/account/get-balance/%s/%s" \
+                    % (self.sms['server'], self.sms['api_key'],
+                       self.sms['api_secret'])
             # pricing
             elif self.sms['type'] == 'pricing':
                 self.request = "%s/account/get-pricing/outbound/%s/%s/%s" \
-                    % (BASEURL, self.sms['api_key'], self.sms['api_secret'],
-                       self.sms['country'])
+                    % (self.sms['server'], self.sms['api_key'],
+                       self.sms['api_secret'], self.sms['country'])
             # numbers
             elif self.sms['type'] == 'numbers':
-                self.request = "%s/account/numbers/%s/%s" % (BASEURL,
-                               self.sms['api_key'], self.sms['api_secret'])
+                self.request = "%s/account/numbers/%s/%s" \
+                    % (self.sms['server'], self.sms['api_key'],
+                       self.sms['api_secret'])
             return self.request
         else:
             # standard requests
             if self.sms['reqtype'] not in self.reqtypes:
-                return False
+                raise Exception("Unknown reqtype")
             params = self.sms.copy()
             params.pop('reqtype')
             params.pop('server')
-            server = "%s/sms/%s" % (BASEURL, self.sms['reqtype'])
+            server = "%s/sms/%s" % (self.sms['server'], self.sms['reqtype'])
             self.request = server + "?" + urllib.urlencode(params)
             return self.request
-        return False
 
     def get_details(self):
         return self.sms
